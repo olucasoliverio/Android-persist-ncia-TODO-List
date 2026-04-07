@@ -27,40 +27,38 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import br.edu.satc.todolistcompose.data.TaskData
-import br.edu.satc.todolistcompose.mockTaskData
 import br.edu.satc.todolistcompose.ui.components.TaskCard
-import br.edu.satc.todolistcompose.ui.theme.ToDoListComposeTheme
+import br.edu.satc.todolistcompose.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 
-@Preview(showBackground = true)
 @Composable
-fun PreviewHomeScreen() {
-    ToDoListComposeTheme { HomeScreen() }
-}
-
-@Composable
-fun HomeScreen() {
+fun HomeScreen(taskViewModel: TaskViewModel = viewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 8.dp)
     ) {
         // Conteúdo principal (lista de items)
-        Content()
+        Content(taskViewModel)
 
         // Dialog new Task
-        NewTask()
+        NewTask(taskViewModel)
     }
 }
 
 @Composable
-fun Content() {
+fun Content(taskViewModel: TaskViewModel) {
     LazyColumn {
-        items(items = mockTaskData) { task ->
-            TaskCard(taskData = task, onTaskCheckedChange = { /*TODO*/ })
+        items(items = taskViewModel.tasks) { task ->
+            TaskCard(
+                taskData = task,
+                onTaskCheckedChange = { isChecked ->
+                    taskViewModel.toggleTaskComplete(task, isChecked)
+                }
+            )
         }
     }
 }
@@ -71,7 +69,7 @@ fun Content() {
  */
 
 @Composable
-fun NewTask() {
+fun NewTask(taskViewModel: TaskViewModel) {
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var taskTitle by remember { mutableStateOf("") }
@@ -119,21 +117,14 @@ fun NewTask() {
                 Button(
                     modifier = Modifier.padding(top = 4.dp),
                     onClick = {
-                        // Aqui salvaríamos a nova Task
+                        // Salva nova task
+                        taskViewModel.addTask(taskTitle, taskDescription)
+
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             if (!sheetState.isVisible) {
                                 showBottomSheet = false
                             }
                         }
-
-                        // Salva nova task
-                        mockTaskData.add(
-                            TaskData(
-                                title = taskTitle,
-                                description = taskDescription,
-                                complete = false
-                            )
-                        )
 
                         // Limpa os campos
                         taskTitle = ""
